@@ -1,0 +1,966 @@
+/* Animaciones del flujo Splash / Onboarding / Creador */
+
+@keyframes voxFall {
+    0% {
+        transform: translate3d(0, -14vh, 0) rotate(0deg);
+        opacity: 0;
+    }
+    8% {
+        opacity: 1;
+    }
+    100% {
+        transform: translate3d(var(--drift, 0px), 112vh, 0) rotate(var(--spin, 360deg));
+        opacity: 1;
+    }
+}
+
+@keyframes voxIdle {
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-14px) rotate(18deg);
+    }
+}
+
+@keyframes sheen {
+    0% {
+        transform: translateX(-120%) skewX(-18deg);
+    }
+    100% {
+        transform: translateX(320%) skewX(-18deg);
+    }
+}
+
+@keyframes trophySpark {
+    0%,
+    100% {
+        opacity: 0.25;
+        transform: scale(0.85);
+    }
+    50% {
+        opacity: 0.9;
+        transform: scale(1.15);
+    }
+}
+
+@keyframes ballSpin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes softPulse {
+    0%,
+    100% {
+        box-shadow: 0 12px 0 #b87400, 0 0 0 rgba(255, 210, 28, 0);
+    }
+    50% {
+        box-shadow: 0 12px 0 #b87400, 0 0 44px rgba(255, 210, 28, 0.55);
+    }
+}
+
+@keyframes selPop {
+    0% {
+        transform: scale(1);
+    }
+    45% {
+        transform: scale(1.16);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes gridDrift {
+    from {
+        background-position: 0 0;
+    }
+    to {
+        background-position: 60px 60px;
+    }
+}
+
+.vox-grid {
+    background-image:
+        linear-gradient(rgba(120, 170, 255, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(120, 170, 255, 0.06) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridDrift 8s linear infinite;
+}
+
+.vox-noise::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.045;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.9) 1px, transparent 1px);
+    background-size: 3px 3px;
+}
+
+.display-font {
+    font-family: "Saira Condensed", "Baloo 2", system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+}
+
+.sel-pop {
+    animation: selPop 320ms cubic-bezier(0.2, 1.7, 0.35, 1);
+}
+
+.flow-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #2f74ff33 transparent;
+}
+.flow-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+.flow-scroll::-webkit-scrollbar-thumb {
+    background: #2f74ff44;
+    border-radius: 8px;
+}
+
+
+@keyframes auraPulse {
+    0%,
+    100% {
+        opacity: 0.75;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.06);
+    }
+}
+
+@keyframes stageSpin {
+    from {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+/* oculta la barra de scroll en los carruseles horizontales */
+.no-bar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.no-bar::-webkit-scrollbar {
+    display: none;
+    height: 0;
+}
+
+/* ---------- creador v2: microdetalles ---------- */
+
+@keyframes checkPop {
+    0% {
+        transform: scale(0);
+    }
+    60% {
+        transform: scale(1.3);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes floatY {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* tooltip con nombre de la opción */
+.tip {
+    position: relative;
+}
+.tip::after {
+    content: attr(data-label);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px) scale(0.92);
+    background: #03060f;
+    border: 1px solid rgba(255, 210, 28, 0.35);
+    color: #fff;
+    font-family: "Saira Condensed", system-ui, sans-serif;
+    font-weight: 800;
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: 0.16em;
+    padding: 6px 9px;
+    border-radius: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    white-space: nowrap;
+    z-index: 40;
+}
+.tip:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+}
+
+/* scroll interno del panel de opciones */
+.panel-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #ffd21c55 rgba(255, 255, 255, 0.04);
+    overscroll-behavior: contain;
+}
+.panel-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+.panel-scroll::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 6px;
+}
+.panel-scroll::-webkit-scrollbar-thumb {
+    background: #ffd21c55;
+    border-radius: 6px;
+}
+.panel-scroll::-webkit-scrollbar-thumb:hover {
+    background: #ffd21c88;
+}
+
+/* dorsal gigante calado detrás del personaje */
+.num-outline {
+    color: transparent;
+    -webkit-text-stroke: 3px rgba(255, 255, 255, 0.09);
+}
+
+/* funde el canvas 3D con el fondo (sin bordes ni recortes duros) */
+.stage-fade {
+    -webkit-mask-image: radial-gradient(
+        ellipse 78% 74% at 50% 47%,
+        #000 62%,
+        rgba(0, 0, 0, 0.55) 84%,
+        transparent 100%
+    );
+    mask-image: radial-gradient(
+        ellipse 78% 74% at 50% 47%,
+        #000 62%,
+        rgba(0, 0, 0, 0.55) 84%,
+        transparent 100%
+    );
+}
+
+
+/* =========================================================
+   CREADOR AAA — atmósfera de estadio
+   ========================================================= */
+
+.creator-root {
+    background:
+        radial-gradient(
+            ellipse 90% 60% at 50% 100%,
+            rgba(20, 46, 118, 0.55) 0%,
+            transparent 70%
+        ),
+        radial-gradient(
+            ellipse 70% 50% at 50% 0%,
+            rgba(12, 32, 82, 0.5) 0%,
+            transparent 65%
+        ),
+        #020615;
+    font-family: "Outfit", system-ui, sans-serif;
+}
+
+/* fondo del visor: imagen del estadio con luces + palco de la referencia */
+.creator-stage-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: 50% 55%;
+    background-repeat: no-repeat;
+    background-color: #030918;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Cuando el visor es más ancho que la imagen, ampliamos la imagen para llenar */
+@media (min-aspect-ratio: 1/1) {
+    .creator-stage-bg {
+        background-size: 100% auto;
+        background-position: 50% 60%;
+    }
+}
+
+/* brillo azul cinematográfico por encima del fondo */
+.creator-stage-atmo {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+        radial-gradient(
+            ellipse 65% 45% at 50% 30%,
+            rgba(90, 160, 255, 0.14) 0%,
+            transparent 65%
+        ),
+        radial-gradient(
+            ellipse 50% 35% at 50% 78%,
+            rgba(80, 150, 255, 0.18) 0%,
+            transparent 70%
+        );
+    mix-blend-mode: screen;
+    opacity: 0.9;
+}
+
+/* capa de imagen del estadio (obsoleta, retenida por compatibilidad) */
+.creator-sky {
+    position: absolute;
+    inset: -6%;
+    background-size: cover;
+    background-position: 50% 8%;
+    filter: saturate(1.05) brightness(0.82);
+    transform: translateZ(0);
+}
+
+/* atmósfera: azules profundos + foco central donde está el podio */
+.creator-atmo {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(
+            ellipse 46% 42% at 30% 62%,
+            rgba(52, 120, 255, 0.26) 0%,
+            rgba(12, 40, 120, 0.1) 46%,
+            transparent 72%
+        ),
+        radial-gradient(
+            ellipse 90% 70% at 50% 0%,
+            rgba(28, 78, 190, 0.28) 0%,
+            transparent 62%
+        ),
+        linear-gradient(
+            180deg,
+            rgba(3, 6, 14, 0.32) 0%,
+            rgba(3, 6, 14, 0.08) 34%,
+            rgba(2, 5, 12, 0.72) 82%,
+            #02040b 100%
+        );
+}
+
+/* viñeta lateral: sutil, dejamos ver la imagen del estadio */
+.creator-vignette {
+    background:
+        radial-gradient(
+            ellipse 130% 110% at 50% 55%,
+            transparent 55%,
+            rgba(1, 3, 9, 0.35) 88%,
+            rgba(1, 3, 9, 0.7) 100%
+        );
+}
+
+/* grano fino sobre todo el conjunto */
+.creator-grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: radial-gradient(
+        rgba(255, 255, 255, 0.85) 0.5px,
+        transparent 0.5px
+    );
+    background-size: 3px 3px;
+}
+
+/* tipografía */
+.epic-font {
+    font-family: "Anton", "Saira Condensed", system-ui, sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.004em;
+}
+
+.hud-font {
+    font-family: "Saira Condensed", "Anton", system-ui, sans-serif;
+    font-weight: 700;
+}
+
+.epic-title {
+    text-shadow:
+        0 2px 0 rgba(0, 0, 0, 0.5),
+        0 6px 0 rgba(0, 0, 0, 0.28),
+        0 0 46px rgba(64, 132, 255, 0.42);
+}
+
+.epic-title .accent {
+    color: #ffd21c;
+    text-shadow:
+        0 2px 0 rgba(90, 48, 0, 0.6),
+        0 6px 0 rgba(0, 0, 0, 0.3),
+        0 0 34px rgba(255, 195, 20, 0.55);
+}
+
+/* paneles de vidrio del HUD */
+.hud-panel {
+    position: relative;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(12, 24, 52, 0.72) 0%,
+            rgba(4, 10, 26, 0.86) 100%
+        );
+    border: 1px solid rgba(150, 190, 255, 0.14);
+    box-shadow:
+        inset 0 1px 0 rgba(190, 220, 255, 0.1),
+        0 26px 60px -26px rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(18px) saturate(1.15);
+}
+
+.hud-panel-soft {
+    background: linear-gradient(
+        180deg,
+        rgba(12, 24, 52, 0.55) 0%,
+        rgba(4, 10, 26, 0.7) 100%
+    );
+    border: 1px solid rgba(150, 190, 255, 0.12);
+    box-shadow: 0 18px 44px -22px rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(14px) saturate(1.1);
+}
+
+/* línea superior luminosa en los paneles principales */
+.hud-topline::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 14%;
+    right: 14%;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 210, 28, 0.55),
+        transparent
+    );
+    pointer-events: none;
+}
+
+/* máscara que funde el canvas 3D con el fondo */
+.stage-blend {
+    -webkit-mask-image: radial-gradient(
+        ellipse 82% 80% at 50% 46%,
+        #000 56%,
+        rgba(0, 0, 0, 0.72) 78%,
+        transparent 100%
+    );
+    mask-image: radial-gradient(
+        ellipse 82% 80% at 50% 46%,
+        #000 56%,
+        rgba(0, 0, 0, 0.72) 78%,
+        transparent 100%
+    );
+}
+
+/* dorsal gigante como marca de agua detrás del jugador */
+.dorsal-ghost {
+    color: transparent;
+    -webkit-text-stroke: 2px rgba(160, 200, 255, 0.09);
+    line-height: 0.78;
+    user-select: none;
+}
+
+@keyframes ctaGlow {
+    0%,
+    100% {
+        box-shadow:
+            0 6px 0 #a86500,
+            0 14px 30px -8px rgba(0, 0, 0, 0.8),
+            0 0 0 rgba(255, 210, 28, 0);
+    }
+    50% {
+        box-shadow:
+            0 6px 0 #a86500,
+            0 14px 30px -8px rgba(0, 0, 0, 0.8),
+            0 0 46px rgba(255, 210, 28, 0.5);
+    }
+}
+
+@keyframes barSweep {
+    0% {
+        transform: translateX(-110%);
+    }
+    100% {
+        transform: translateX(320%);
+    }
+}
+
+/* tira de resumen del loadout */
+.loadout-chip {
+    transition:
+        border-color 0.16s ease,
+        background-color 0.16s ease,
+        transform 0.16s ease;
+}
+.loadout-chip:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 210, 28, 0.5);
+}
+
+
+/* =========================================================
+   SPLASH — composición pulida
+   ========================================================= */
+
+/* halo cálido detrás del logo, centrado sobre el propio logo */
+.splash-halo {
+    position: absolute;
+    left: 50%;
+    top: 48%;
+    width: 78%;
+    height: 78%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(
+        circle,
+        rgba(255, 226, 120, 0.22) 0%,
+        rgba(255, 178, 40, 0.1) 40%,
+        transparent 72%
+    );
+    filter: blur(6px);
+    animation: splashHalo 4.6s ease-in-out infinite;
+}
+
+@keyframes splashHalo {
+    0%,
+    100% {
+        opacity: 0.55;
+        transform: translate(-50%, -50%) scale(0.96);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.05);
+    }
+}
+
+/* franja de luz inferior: da suelo a la escena */
+.splash-horizon {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -14%;
+    height: 46%;
+    pointer-events: none;
+    background: radial-gradient(
+        ellipse 60% 100% at 50% 100%,
+        rgba(84, 150, 255, 0.28) 0%,
+        rgba(30, 70, 190, 0.12) 45%,
+        transparent 74%
+    );
+}
+
+.splash-vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+    background: radial-gradient(
+        ellipse 120% 100% at 50% 48%,
+        transparent 58%,
+        rgba(1, 3, 9, 0.3) 88%,
+        rgba(1, 3, 9, 0.58) 100%
+    );
+}
+
+@keyframes splashCta {
+    0%,
+    100% {
+        box-shadow:
+            0 0 0 rgba(255, 210, 28, 0),
+            inset 0 0 0 rgba(255, 210, 28, 0);
+        border-color: rgba(255, 210, 28, 0.45);
+    }
+    50% {
+        box-shadow:
+            0 0 38px rgba(255, 210, 28, 0.3),
+            inset 0 0 22px rgba(255, 210, 28, 0.08);
+        border-color: rgba(255, 210, 28, 0.85);
+    }
+}
+
+/* =========================================================
+   VOXEL CUP THEME — ported from app/globals.css (Next.js → CRA)
+   oklch colors converted to hex per the design spec.
+   ========================================================= */
+
+:root {
+    --vc-gold: #ffd21c;
+    --vc-blue: #2f74ff;
+    --vc-red: #ff2d3c;
+    --vc-violet: #c56bff;
+    --vc-green: #20d47a;
+    --vc-ink: #0b1428;
+    --vc-bg: #080f24;
+    --vc-foreground: #f0f4ff;
+    --vc-panel: #101a33;
+    --vc-panel-dark: #080f24;
+    --vc-card: #0a1330;
+    --vc-blue-bg: #1a3a6e;
+    --vc-red-bg: #5c1a1a;
+    --vc-blue-chip: #1e3a5f;
+    --vc-red-chip: #5c1a1a;
+    --vc-very-dark: #050b20;
+    --vc-black: #03060f;
+    --vc-white: #ffffff;
+    --vc-gray: #777777;
+    --vc-light-gray: #9a9a9a;
+    --font-display: "Anton", "Saira Condensed", sans-serif;
+    --font-body: "Outfit", sans-serif;
+    --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+    color-scheme: dark;
+}
+
+html,
+body {
+    background: var(--vc-ink);
+}
+
+.vc-title {
+    font-family: var(--font-display);
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+}
+
+/* --- animations --- */
+@keyframes vc-rise {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+.vc-rise {
+    animation: vc-rise 0.65s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+@keyframes vc-float {
+    0%,
+    100% {
+        transform: translate3d(0, 0, 0);
+    }
+    50% {
+        transform: translate3d(0, -10px, 0);
+    }
+}
+
+@keyframes vc-drift {
+    0% {
+        transform: translate3d(0, 110%, 0) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.9;
+    }
+    90% {
+        opacity: 0.5;
+    }
+    100% {
+        transform: translate3d(var(--dx, 20px), -20%, 0) rotate(180deg);
+        opacity: 0;
+    }
+}
+.vc-cube {
+    animation: vc-drift linear infinite;
+}
+
+@keyframes vc-sweep {
+    0% {
+        transform: translateX(-140%) skewX(-18deg);
+    }
+    100% {
+        transform: translateX(260%) skewX(-18deg);
+    }
+}
+.vc-sweep::after {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 42%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.18),
+        transparent
+    );
+    transform: translateX(-140%) skewX(-18deg);
+    pointer-events: none;
+}
+.vc-sweep:hover::after {
+    animation: vc-sweep 0.75s ease-out;
+}
+
+@keyframes vc-pulse-glow {
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 210, 28, 0.35);
+    }
+    50% {
+        box-shadow: 0 0 26px 4px rgba(255, 210, 28, 0.3);
+    }
+}
+.vc-glow-gold {
+    animation: vc-pulse-glow 2.8s ease-in-out infinite;
+}
+
+@keyframes vc-scan {
+    0% {
+        transform: translateY(-100%);
+    }
+    100% {
+        transform: translateY(900%);
+    }
+}
+
+@keyframes vc-spin-slow {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes vc-bar {
+    0%,
+    100% {
+        transform: scaleY(0.45);
+    }
+    50% {
+        transform: scaleY(1);
+    }
+}
+
+@keyframes vc-shake {
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+    20% {
+        transform: translateX(-2px) rotate(-3deg);
+    }
+    40% {
+        transform: translateX(2px) rotate(3deg);
+    }
+    60% {
+        transform: translateX(-1px) rotate(-2deg);
+    }
+    80% {
+        transform: translateX(1px) rotate(2deg);
+    }
+}
+.group:hover .vc-shake {
+    animation: vc-shake 0.5s ease-in-out;
+}
+
+/* --- screens / overlays --- */
+@keyframes vc-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+.vc-fade-in {
+    animation: vc-fade-in 0.35s ease-out both;
+}
+
+@keyframes vc-screen-in {
+    from {
+        opacity: 0;
+        transform: translateY(26px) scale(0.965);
+        filter: blur(6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+        filter: blur(0);
+    }
+}
+.vc-screen-in {
+    animation: vc-screen-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes vc-pop {
+    0% {
+        opacity: 0;
+        transform: scale(0.6) rotate(-6deg);
+    }
+    60% {
+        transform: scale(1.08) rotate(2deg);
+    }
+    100% {
+        opacity: 1;
+        transform: none;
+    }
+}
+.vc-pop {
+    animation: vc-pop 0.45s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+
+@keyframes vc-blink {
+    0%,
+    49% {
+        opacity: 1;
+    }
+    50%,
+    100% {
+        opacity: 0;
+    }
+}
+.vc-caret {
+    animation: vc-blink 1s steps(1) infinite;
+}
+
+@keyframes vc-dots {
+    0%,
+    100% {
+        opacity: 0.25;
+        transform: translateY(0);
+    }
+    50% {
+        opacity: 1;
+        transform: translateY(-3px);
+    }
+}
+
+@keyframes vc-progress {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(300%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::after,
+    *::before {
+        animation-duration: 0.001s !important;
+        animation-iteration-count: 1 !important;
+    }
+}
+
+
+/* =========================================================
+   VOXEL CUP THEME — oklch override (Tailwind v4 native)
+   The hex values above are visually equivalent but oklch is
+   the canonical palette per the reference globals.css. This
+   block overrides only the brand color tokens + the dark-mode
+   radius, leaving the existing animations and utility classes
+   intact (they don't reference colors directly).
+   ========================================================= */
+:root,
+:root:not(.light) {
+  --vc-gold: oklch(0.82 0.16 84);
+  --vc-blue: oklch(0.62 0.18 258);
+  --vc-red: oklch(0.58 0.22 25);
+  --vc-violet: oklch(0.6 0.19 300);
+  --vc-green: oklch(0.72 0.17 155);
+  --vc-ink: oklch(0.16 0.05 262);
+  --radius: 0.75rem;
+}
+
+/* ===== VOXEL CUP THEME — animations + utilities ===== */
+.vc-title {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+@keyframes vc-rise {
+  from { opacity: 0; transform: translateY(18px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+.vc-rise { animation: vc-rise 0.65s cubic-bezier(0.2, 0.9, 0.2, 1) both; }
+
+@keyframes vc-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -10px, 0); }
+}
+
+@keyframes vc-drift {
+  0% { transform: translate3d(0, 110%, 0) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.9; }
+  90% { opacity: 0.5; }
+  100% { transform: translate3d(var(--dx, 20px), -20%, 0) rotate(180deg); opacity: 0; }
+}
+.vc-cube { animation: vc-drift linear infinite; }
+
+@keyframes vc-sweep {
+  0% { transform: translateX(-140%) skewX(-18deg); }
+  100% { transform: translateX(260%) skewX(-18deg); }
+}
+.vc-sweep::after {
+  content: ''; position: absolute; inset: 0 auto 0 0; width: 42%;
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 18%), transparent);
+  transform: translateX(-140%) skewX(-18deg); pointer-events: none;
+}
+.vc-sweep:hover::after { animation: vc-sweep 0.75s ease-out; }
+
+@keyframes vc-pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.82 0.16 84 / 35%); }
+  50% { box-shadow: 0 0 26px 4px oklch(0.82 0.16 84 / 30%); }
+}
+.vc-glow-gold { animation: vc-pulse-glow 2.8s ease-in-out infinite; }
+
+@keyframes vc-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-2px) rotate(-3deg); }
+  40% { transform: translateX(2px) rotate(3deg); }
+  60% { transform: translateX(-1px) rotate(-2deg); }
+  80% { transform: translateX(1px) rotate(2deg); }
+}
+.group:hover .vc-shake { animation: vc-shake 0.5s ease-in-out; }
+
+@keyframes vc-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.vc-fade-in { animation: vc-fade-in 0.35s ease-out both; }
+
+@keyframes vc-screen-in {
+  from { opacity: 0; transform: translateY(26px) scale(0.965); }
+  to { opacity: 1; transform: none; }
+}
+.vc-screen-in { animation: vc-screen-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@keyframes vc-pop {
+  0% { opacity: 0; transform: scale(0.6) rotate(-6deg); }
+  60% { transform: scale(1.08) rotate(2deg); }
+  100% { opacity: 1; transform: none; }
+}
+.vc-pop { animation: vc-pop 0.45s cubic-bezier(0.2, 1.3, 0.4, 1) both; }
+
+@keyframes vc-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+.vc-caret { animation: vc-blink 1s steps(1) infinite; }
+
+@keyframes vc-dots {
+  0%, 100% { opacity: 0.25; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
+}
+
+@keyframes vc-progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(300%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::after, *::before {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+  }
+}

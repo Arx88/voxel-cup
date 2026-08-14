@@ -1,0 +1,411 @@
+html,
+body,
+#root {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: #0a1030;
+}
+
+body {
+    font-family: "Baloo 2", system-ui, sans-serif;
+}
+
+canvas {
+    display: block;
+}
+
+@keyframes pop {
+    0% {
+        transform: scale(0.7);
+        opacity: 0;
+    }
+    70% {
+        transform: scale(1.06);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes goalLetter {
+    0% {
+        transform: translateY(-140px) rotate(-18deg) scale(0.3);
+        opacity: 0;
+        filter: blur(6px);
+    }
+    55% {
+        transform: translateY(18px) rotate(6deg) scale(1.2);
+        opacity: 1;
+        filter: blur(0);
+    }
+    75% {
+        transform: translateY(-8px) rotate(-3deg) scale(0.95);
+    }
+    100% {
+        transform: translateY(0) rotate(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes goalTeam {
+    0% {
+        transform: scale(0.6);
+        opacity: 0;
+    }
+    60% {
+        transform: scale(1.12);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes goalFlash {
+    0% { opacity: 0; }
+    30% { opacity: 1; }
+    100% { opacity: 0.35; }
+}
+
+@keyframes confettiFall {
+    0% {
+        transform: translateY(-10vh) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(120vh) rotate(720deg);
+        opacity: 0.9;
+    }
+}
+
+@keyframes chipIn {
+    0% {
+        transform: translateY(-14px) scale(0.8);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes toastPop {
+    0% {
+        transform: translateY(-18px) scale(0.7);
+        opacity: 0;
+    }
+    60% {
+        transform: translateY(0) scale(1.08);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes superPulse {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 1; }
+}
+
+@keyframes pwrSlam {
+    0% { transform: translateY(-22px) scale(0.72) skewX(-8deg); opacity: 0; }
+    55% { transform: translateY(2px) scale(1.09) skewX(3deg); opacity: 1; }
+    72% { transform: translateY(0) scale(0.97) skewX(-1deg); }
+    100% { transform: translateY(0) scale(1) skewX(0deg); opacity: 1; }
+}
+
+@keyframes pwrBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+
+@keyframes pwrSheen {
+    0% { left: -60%; }
+    45% { left: 130%; }
+    100% { left: 130%; }
+}
+
+@keyframes pwrIconFloat {
+    0%, 100% { transform: translateY(0) rotate(-1deg); }
+    50% { transform: translateY(-3px) rotate(2deg); }
+}
+
+@keyframes pwrTagPulse {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.08); filter: brightness(1.25); }
+}
+
+
+
+/* ============================================================
+   KICKOFF COUNTDOWN — cinemática 3·2·1 AAA
+   ============================================================ */
+@keyframes kickVeilIn {
+    0% { opacity: 0; backdrop-filter: blur(0px); -webkit-backdrop-filter: blur(0px); }
+    100% { opacity: 1; }
+}
+@keyframes kickVeilOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+@keyframes kickHalo {
+    0% { transform: scale(0.55); opacity: 0; }
+    45% { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1.4); opacity: 0; }
+}
+@keyframes kickWave {
+    0% { transform: scale(0.25); opacity: 0.9; }
+    100% { transform: scale(6); opacity: 0; }
+}
+@keyframes kickShard {
+    0% { transform: translate(-50%, -50%) scale(0.35); opacity: 0; }
+    18% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% {
+        transform: translate(calc(-50% + var(--px, 0px)), calc(-50% + var(--py, 0px))) scale(0.35);
+        opacity: 0;
+    }
+}
+@keyframes kickNum {
+    0% { transform: scale(3.3) rotate(-12deg); opacity: 0; filter: blur(8px); letter-spacing: -0.14em; }
+    12% { transform: scale(1.18) rotate(-2deg); opacity: 1; filter: blur(0); }
+    62% { transform: scale(1) rotate(0deg); opacity: 1; }
+    100% { transform: scale(0.62) rotate(4deg); opacity: 0; filter: blur(4px); }
+}
+@keyframes kickGo {
+    0% { transform: translateY(24vmin) scale(0.5) skewX(-14deg); opacity: 0; filter: blur(10px); }
+    20% { transform: translateY(0) scale(1.32) skewX(-4deg); opacity: 1; filter: blur(0); }
+    45% { transform: translateY(0) scale(1) skewX(0deg); }
+    100% { transform: translateY(-6vmin) scale(1.5); opacity: 0; }
+}
+@keyframes kickTag {
+    0% { transform: translateY(10px); opacity: 0; letter-spacing: 0.28em; }
+    100% { transform: translateY(0); opacity: 1; letter-spacing: 0.62em; }
+}
+@keyframes kickBar {
+    0% { transform: scaleX(0); opacity: 0; }
+    30% { transform: scaleX(1); opacity: 1; }
+    100% { transform: scaleX(1.1); opacity: 0; }
+}
+@keyframes kickTicker {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+@keyframes kickCrestPop {
+    0% { transform: scale(0.5) rotate(-8deg); opacity: 0; }
+    60% { transform: scale(1.15) rotate(3deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* ============================================================
+   VOXEL KICKOFF — cuenta regresiva construida con bloques
+   ============================================================ */
+@keyframes vxStageIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+@keyframes vxStageOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+@keyframes vxShake {
+    0% { transform: translate3d(0, 0, 0); }
+    18% { transform: translate3d(-0.35vmin, 0.2vmin, 0); }
+    38% { transform: translate3d(0.3vmin, -0.25vmin, 0); }
+    62% { transform: translate3d(-0.18vmin, 0.12vmin, 0); }
+    100% { transform: translate3d(0, 0, 0); }
+}
+@keyframes vxBlockIn {
+    0% {
+        opacity: 0;
+        transform: translate3d(var(--bx, 0px), var(--by, -8vmin), 0) scale(0.15) rotate(var(--br, -24deg));
+    }
+    55% { opacity: 1; }
+    72% { transform: translate3d(0, 0, 0) scale(1.12) rotate(0deg); }
+    88% { transform: translate3d(0, 0.35vmin, 0) scale(0.97) rotate(0deg); }
+    100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+}
+@keyframes vxBlockOut {
+    0% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+    100% {
+        opacity: 0;
+        transform: translate3d(calc(var(--bx, 0px) * -2.4), calc(var(--by, 0px) * -2.4), 0) scale(0.35) rotate(var(--br, 20deg));
+    }
+}
+@keyframes vxBlast {
+    0% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+    26% { opacity: 1; transform: translate3d(0, 0, 0) scale(1.14); }
+    100% {
+        opacity: 0;
+        transform: translate3d(calc(var(--ex, 0px)), calc(var(--ey, 0px)), 0) scale(0.28) rotate(var(--er, 90deg));
+    }
+}
+@keyframes vxSheen {
+    0%, 62%, 100% { filter: brightness(1); }
+    24% { filter: brightness(1.35); }
+}
+@keyframes vxRingSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+@keyframes vxRingPop {
+    0% { transform: scale(0.86); opacity: 0; }
+    45% { transform: scale(1.03); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+@keyframes vxPulse {
+    0% { transform: scale(0.92); opacity: 0.65; }
+    100% { transform: scale(1.5); opacity: 0; }
+}
+@keyframes vxTickPop {
+    0% { transform: scale(1.9); filter: brightness(2.2); }
+    100% { transform: scale(1); filter: brightness(1); }
+}
+@keyframes vxPillIn {
+    0% { transform: translateY(2.4vmin) scaleX(0.72); opacity: 0; }
+    62% { transform: translateY(0) scaleX(1.04); opacity: 1; }
+    100% { transform: translateY(0) scaleX(1); opacity: 1; }
+}
+@keyframes vxMote {
+    0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg); }
+    16% { opacity: 0.9; }
+    100% { opacity: 0; transform: translate3d(var(--mx, 0px), var(--my, -22vmin), 0) rotate(var(--mr, 180deg)); }
+}
+@keyframes vxScan {
+    0% { transform: translateY(-120%); opacity: 0; }
+    35% { opacity: 0.55; }
+    100% { transform: translateY(120%); opacity: 0; }
+}
+
+/* ============================================================
+   HALFTIME / MATCH END — pantallas cinemáticas
+   ============================================================ */
+@keyframes htSlide {
+    0% { transform: translateY(-40vh) skewY(-6deg); opacity: 0; }
+    60% { transform: translateY(0) skewY(1deg); opacity: 1; }
+    100% { transform: translateY(0) skewY(0deg); opacity: 1; }
+}
+@keyframes htBar {
+    0% { transform: translateX(-105%); }
+    100% { transform: translateX(0); }
+}
+@keyframes htRise {
+    0% { transform: translateY(24px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes htGlow {
+    0%, 100% { filter: drop-shadow(0 0 12px currentColor); }
+    50% { filter: drop-shadow(0 0 36px currentColor); }
+}
+@keyframes meBackdrop {
+    0% { opacity: 0; backdrop-filter: blur(0px); }
+    100% { opacity: 1; backdrop-filter: blur(10px); }
+}
+@keyframes meRayIn {
+    0% { transform: translate(-50%, -50%) scale(0.4) rotate(-40deg); opacity: 0; }
+    60% { transform: translate(-50%, -50%) scale(1.1) rotate(-8deg); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes meRaySpin {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+@keyframes meHeroIn {
+    0% { transform: translateY(60vh) scale(0.6); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes meBadgeIn {
+    0% { transform: scale(0.3) rotate(-14deg); opacity: 0; }
+    70% { transform: scale(1.15) rotate(4deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes meScoreCount {
+    0% { transform: scale(0.5); opacity: 0; }
+    60% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+@keyframes meBar {
+    from { width: 0; }
+    to { width: var(--w, 100%); }
+}
+@keyframes meRowIn {
+    0% { transform: translateX(-24px); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+}
+@keyframes meTitlePunch {
+    0% { transform: scale(1.6); opacity: 0; letter-spacing: -0.06em; filter: blur(8px); }
+    45% { transform: scale(1); opacity: 1; filter: blur(0); }
+    100% { transform: scale(1); opacity: 1; }
+}
+@keyframes mePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+}
+@keyframes voxelFloat {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-8px) rotate(2deg); }
+}
+
+/* ---- AAA overlays: match end, halftime, goal scorer ---- */
+@keyframes matchEndIn {
+  0% { opacity: 0; transform: translateY(28px) scale(0.94); filter: blur(6px); }
+  60% { opacity: 1; transform: translateY(-4px) scale(1.02); filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+@keyframes halftimeIn {
+  0% { opacity: 0; transform: translateY(30px) scale(0.9); filter: blur(6px); }
+  60% { opacity: 1; transform: translateY(-6px) scale(1.03); filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+@keyframes goalScorerIn {
+  0% { opacity: 0; transform: translateX(-40px) skewX(-8deg); letter-spacing: 0.1em; }
+  60% { opacity: 1; transform: translateX(6px) skewX(2deg); }
+  100% { opacity: 1; transform: translateX(0) skewX(0); letter-spacing: 0.02em; }
+}
+@keyframes rayShine {
+  0%, 100% { opacity: 0.08; transform: scaleY(0.6); }
+  50% { opacity: 0.45; transform: scaleY(1); }
+}
+@keyframes starTwinkle {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+@keyframes trophyFloat {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-12px) rotate(1.5deg); }
+}
+@keyframes pulseSoft {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+
+/* ===== ENTRETIEMPO — rediseño voxel ===== */
+@keyframes htConfetti {
+  0%   { transform: translateY(-10vh) rotate(0deg); opacity: 0; }
+  8%   { opacity: 0.9; }
+  100% { transform: translateY(112vh) rotate(540deg); opacity: 0.9; }
+}
+@keyframes htTick {
+  0%   { transform: scale(1.35); opacity: 0; }
+  60%  { transform: scale(0.94); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes htCrown {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50%      { transform: translateY(-4px) rotate(4deg); }
+}
+@keyframes bustPop {
+  0%   { transform: translateY(18px) scale(0.6); opacity: 0; }
+  70%  { transform: translateY(-4px) scale(1.06); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes bustFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+

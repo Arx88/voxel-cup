@@ -38,6 +38,10 @@ const WS_PATH = (code) => `/api/ws/room/${code}`;
 const MAX_RETRIES = 5;
 const BASE_BACKOFF_MS = 700;
 const MAX_BACKOFF_MS = 8000;
+// Snapshots are disposable: preserving old state under TCP congestion makes
+// every later input feel delayed. Wait for the socket to drain, then send a
+// fresh world instead of building an unbounded stale-state queue.
+const MAX_STATE_BUFFERED_BYTES = 128 * 1024;
 
 /** Build the WebSocket URL for a room code. Uses same-origin in dev (proxy),
  *  or BACKEND_URL if explicitly set. */
@@ -192,7 +196,8 @@ export class RoomClient {
   }
 
   sendState(state) {
-    // Host-only — relayed to all other clients.
+    if (!this.ws || this.ws.readyState !== window.WebSocket.OPEN) return false;
+    if (this.ws.bufferedAmount > MAX_STATE_BUFFERED_BYTES) return false;
     return this.send({ type: "state", state });
   }
 

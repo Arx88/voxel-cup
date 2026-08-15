@@ -178,7 +178,15 @@ export const GameCanvas = ({ roomClient, isHost }) => {
               //    (skip my slot — my player is predicted locally).
               try {
                 const interpolated = clientSync.getInterpolatedState();
-                if (interpolated) applyStateToScene(localGame, interpolated, rc.mySlot, dt);
+                if (interpolated) {
+                  applyStateToScene(
+                    localGame,
+                    interpolated,
+                    rc.mySlot,
+                    dt,
+                    clientSync.latestState
+                  );
+                }
               } catch (e) {
                 console.warn("[ClientSync] applyStateToScene error:", e);
               }

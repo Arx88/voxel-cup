@@ -62,6 +62,10 @@ export class HostSync {
     // Timestamp (guest monotonic clock) echoed back in the next state so the
     // guest can measure a real round-trip without clock synchronization.
     this._pingT = null;
+    // Keep a ping per guest. A single shared ping meant that, with 3+ people
+    // in a room, one guest could measure another guest's RTT and project its
+    // prediction with the wrong delivery age.
+    this._pingBySlot = new Map();
     // Broadcast is DECOUPLED from the engine/render loop. A dedicated 30Hz
     // timer sends the latest authoritative snapshot so a throttled render
     // (background tab, slow GPU, software WebGL) can never starve the guest's
@@ -269,6 +273,9 @@ export class HostSync {
     if (this.lastAppliedSeq.size > 0) {
       state.acks = Object.fromEntries(this.lastAppliedSeq);
     }
+    if (this._pingBySlot.size > 0) {
+      state.pings = Object.fromEntries(this._pingBySlot);
+    }
     // P3: include full stats once on match end so clients can render the
     // post-match screen (standings + MVP + team aggregates).
     if (matchEnded) {
@@ -286,7 +293,10 @@ export class HostSync {
    */
   onRemoteInput(input, fromSlot) {
     if (fromSlot == null) return;
-    if (typeof input?.t === "number") this._pingT = input.t;
+    if (typeof input?.t === "number") {
+      this._pingT = input.t;
+      this._pingBySlot.set(fromSlot, input.t);
+    }
     this.inputBuffer.set(fromSlot, input);
   }
 
@@ -401,6 +411,12 @@ export class ClientSync {
     this._reconcileYawError = 0;
     /** @type {{state: object, timestamp: number}[]} */
     this.stateBuffer = [];
+    // State packets may be queued by TCP for a short while on a weak link.
+    // Never let an older packet rewind the visual timeline after a newer
+    // authoritative tick was already accepted.
+    this._lastAcceptedStateSeq = -1;
+    this._lastAcceptedServerTick = -1;
+    this._oneWayMs = null;
     this.inputInterval = 1 / 30; // 30Hz replay cadence
     this.seq = 0;
     /** Latest received state (for fallback when buffer < 2) */
@@ -412,14 +428,12 @@ export class ClientSync {
     /** Reconciliation stats */
     this.reconciliations = 0;
     this.lastDrift = 0;
-    // Smoothed localTime - hostSimulationTime offset. It gives us a useful
-    // one-way delivery age for the latest authoritative snapshot without
-    // requiring clock synchronization between browsers.
-    this._hostClockOffset = null;
     /** Interpolation delay (ms behind real time) for OTHER players + ball.
-     *  50ms keeps a small jitter buffer at 30Hz; the local player is
-     *  predicted separately and is unaffected by this delay. */
-    this.interpDelayMs = 50;
+     *  A little over two 30Hz snapshots keeps the visual timeline continuous
+     *  through normal Wi-Fi jitter. The local player is predicted separately
+     *  and is therefore unaffected by this delay. */
+    this.interpDelayMs = 85;
+    this.maxExtrapolationMs = 100;
     // Input transport is wall-clock driven instead of render-frame driven.
     // A software-rendered or background guest can have a slow rAF while its
     // controls remain responsive and continue sending a 30Hz heartbeat.
@@ -434,19 +448,47 @@ export class ClientSync {
    */
   onState(state) {
     if (!state) return;
+    const timestamp =
+      typeof performance !== "undefined" ? performance.now() : Date.now();
+
+    // WebSocket normally preserves ordering, but a stale snapshot can still
+    // arrive after reconnect/buffering boundaries. Applying it would make a
+    // player or the ball visibly jump backwards. Sequence is preferred; the
+    // simulation tick is a safe fallback for older hosts.
+    const seq = Number(state.seq);
+    const serverTick = Number(state.serverTick);
+    if (Number.isFinite(seq) && seq <= this._lastAcceptedStateSeq) return;
+    if (!Number.isFinite(seq) && Number.isFinite(serverTick) && serverTick <= this._lastAcceptedServerTick) return;
+    if (Number.isFinite(seq)) this._lastAcceptedStateSeq = seq;
+    if (Number.isFinite(serverTick)) this._lastAcceptedServerTick = serverTick;
+
     netDiag.onState(state);
     this.statesReceived++;
     this.latestState = state;
-    const timestamp =
-      typeof performance !== "undefined" ? performance.now() : Date.now();
-    this.stateBuffer.push({ state, timestamp });
-    if (typeof state.serverTime === "number") {
-      const localSeconds = timestamp / 1000;
-      const sample = localSeconds - state.serverTime;
-      this._hostClockOffset = this._hostClockOffset == null
-        ? sample
-        : this._hostClockOffset * 0.9 + sample * 0.1;
+
+    // State.pings carries this guest's own monotonic input timestamp. It is a
+    // real RTT sample, so half of it is a much better short projection than
+    // trying to compare performance.now() clocks from different browsers.
+    const mySlot = this.rc?.mySlot;
+    const echoedPing = typeof mySlot === "number"
+      ? state.pings?.[mySlot] ?? state.ping
+      : state.ping;
+    if (Number.isFinite(echoedPing)) {
+      const rtt = timestamp - echoedPing;
+      if (rtt >= 0 && rtt < 2000) {
+        const sample = Math.min(160, rtt * 0.5);
+        this._oneWayMs = this._oneWayMs == null
+          ? sample
+          : this._oneWayMs * 0.8 + sample * 0.2;
+      }
     }
+
+    const serverTime = Number(state.serverTime);
+    this.stateBuffer.push({
+      state,
+      timestamp,
+      serverTime: Number.isFinite(serverTime) ? serverTime : null,
+    });
     // Trim buffer to ~1s of history. Keep at least 2 for interpolation.
     const cutoff = timestamp - 1000;
     while (this.stateBuffer.length > 2 && this.stateBuffer[0].timestamp < cutoff) {
@@ -511,12 +553,11 @@ export class ClientSync {
     let replayYaw = hostYaw;
 
     // The position in a state is already old by the time it arrives. Project
-    // it through the measured delivery age before replaying unacknowledged
-    // inputs; otherwise every packet would pull a running guest backwards by
-    // one network round-trip and create the rubber-band feel.
-    if (typeof state.serverTime === "number" && this._hostClockOffset != null) {
-      const localSeconds = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
-      const age = Math.max(0, Math.min(0.18, localSeconds - (this._hostClockOffset + state.serverTime)));
+    // it through the measured one-way delivery age before replaying
+    // unacknowledged inputs; otherwise every packet would pull a running
+    // guest backwards by one network round-trip and create rubber-banding.
+    if (this._oneWayMs != null) {
+      const age = Math.max(0, Math.min(0.16, this._oneWayMs / 1000));
       replayPos.x += replayVel.x * age;
       replayPos.z += replayVel.z * age;
     }
@@ -528,34 +569,57 @@ export class ClientSync {
     // bounded to 90 packets). Replaying only the last 30 commands made a
     // delayed connection lose the first second of movement and then correct
     // the guest toward an incomplete target.
-    for (const pending of this.pendingInputs.slice(-120)) {
+    const replayInputs = this.pendingInputs.slice(-120);
+    let previousSentAt = replayInputs.length
+      ? Number(replayInputs[0].sentAt) - this.inputInterval * 1000
+      : 0;
+    let replayBudget = 0.25;
+    for (const pending of replayInputs) {
+      const sentAt = Number(pending.sentAt);
+      let replayDt = this.inputInterval;
+      if (Number.isFinite(sentAt) && Number.isFinite(previousSentAt)) {
+        replayDt = Math.max(1 / 120, Math.min(0.05, (sentAt - previousSentAt) / 1000));
+      }
+      previousSentAt = Number.isFinite(sentAt) ? sentAt : previousSentAt + replayDt * 1000;
+      replayDt = Math.min(replayDt, replayBudget);
+      if (replayDt <= 0) break;
       replayYaw = this._simulateNetworkMove(
         localPlayer,
         replayPos,
         replayVel,
         replayYaw,
         pending,
-        this.inputInterval
+        replayDt
       ).yaw;
+      replayBudget -= replayDt;
     }
 
-    // The state stream is already 30Hz and the target includes the short
-    // delivery-age projection plus all unacknowledged local commands. Keep
-    // the visible local player on that deterministic target instead of
-    // accumulating a slow correction that can never catch a moving player
-    // when a browser misses prediction timer ticks. Between packets,
-    // predictLocalPlayer() advances the same mesh immediately from input.
-    this.lastCorrection = Math.hypot(replayPos.x - currentPos.x, replayPos.z - currentPos.z);
-    localPlayer.mesh.position.copy(replayPos);
-    localPlayer.vel.copy(replayVel);
-    localPlayer.speed = Math.hypot(replayVel.x, replayVel.z);
-    localPlayer.mesh.rotation.y = replayYaw;
-    localPlayer.heading = replayYaw;
-    this._reconcileError.set(0, 0, 0);
-    this._reconcileYawError = 0;
+    // Do not copy the visible mesh on every authoritative packet. That was
+    // the direct source of the guest's "teleport / rubber-band" feel. Small
+    // disagreement is paid down by predictLocalPlayer() at a bounded rate;
+    // only a genuine reset (goal, kickoff, respawn) is large enough to snap.
+    const correctionX = replayPos.x - currentPos.x;
+    const correctionZ = replayPos.z - currentPos.z;
+    const correction = Math.hypot(correctionX, correctionZ);
+    const hardReset = correction > 6;
+    this.lastCorrection = correction;
+    this.lastDrift = correction;
+    if (hardReset) {
+      localPlayer.mesh.position.copy(replayPos);
+      localPlayer.vel.copy(replayVel);
+      localPlayer.speed = Math.hypot(replayVel.x, replayVel.z);
+      localPlayer.mesh.rotation.y = replayYaw;
+      localPlayer.heading = replayYaw;
+      this._reconcileError.set(0, 0, 0);
+      this._reconcileYawError = 0;
+    } else {
+      this._reconcileError.set(correctionX, 0, correctionZ);
+      this._reconcileYawError = this._shortAngle(replayYaw - currentYaw);
+      if (localPlayer.vel?.lerp) localPlayer.vel.lerp(replayVel, 0.18);
+      localPlayer.speed = Math.hypot(localPlayer.vel?.x || 0, localPlayer.vel?.z || 0);
+    }
     this._authoritativeY = replayPos.y;
     this._hasAuthority = true;
-    this.lastDrift = 0;
     this.reconciliations++;
   }
 
@@ -872,6 +936,10 @@ export class ClientSync {
         buttons: input.buttons,
         charge: input.charge,
         release: !!release,
+        // Input edges can be sent immediately in addition to the 30Hz
+        // heartbeat. Keep their real send time so reconciliation does not
+        // replay two adjacent edge packets as two full 33ms movement steps.
+        sentAt: input.t,
       });
       if (this.pendingInputs.length > 90) {
         this.pendingInputs.splice(0, this.pendingInputs.length - 90);
@@ -893,7 +961,7 @@ export class ClientSync {
   }
 
   /**
-   * Get the interpolated state for rendering, 50ms behind real time.
+   * Get the interpolated state for rendering behind the host timeline.
    * Returns null if the buffer doesn't have at least 2 states yet.
    * Falls back to the latest state if interpolation isn't possible.
    *
@@ -906,23 +974,53 @@ export class ClientSync {
     if (this.stateBuffer.length < 2) {
       return this.latestState;
     }
-    const now =
-      (typeof performance !== "undefined" ? performance.now() : Date.now()) - this.interpDelayMs;
-    // Find two states that bracket `now`.
+    const newest = this.stateBuffer[this.stateBuffer.length - 1];
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+
+    // Interpolate on the host simulation clock, not on local arrival times.
+    // A Wi-Fi packet that arrives 40ms late must not stretch the visual
+    // timeline and make every remote player stutter. We estimate the current
+    // host tick from the newest packet and then sample a small stable buffer
+    // behind it.
+    if (Number.isFinite(newest.serverTime)) {
+      const elapsedSinceNewest = Math.max(0, Math.min(250, now - newest.timestamp)) / 1000;
+      const renderServerTime = newest.serverTime + elapsedSinceNewest - this.interpDelayMs / 1000;
+      for (let i = 0; i < this.stateBuffer.length - 1; i++) {
+        const s1 = this.stateBuffer[i];
+        const s2 = this.stateBuffer[i + 1];
+        if (!Number.isFinite(s1.serverTime) || !Number.isFinite(s2.serverTime)) continue;
+        if (s1.serverTime <= renderServerTime && renderServerTime <= s2.serverTime) {
+          const span = s2.serverTime - s1.serverTime || 1 / 60;
+          const t = Math.max(0, Math.min(1, (renderServerTime - s1.serverTime) / span));
+          return this._lerpStates(s1.state, s2.state, t);
+        }
+      }
+      if (renderServerTime < this.stateBuffer[0].serverTime) {
+        return this.stateBuffer[0].state;
+      }
+      const age = Math.max(0, Math.min(
+        this.maxExtrapolationMs / 1000,
+        renderServerTime - newest.serverTime
+      ));
+      return age > 0 ? this._extrapolateState(newest.state, age) : newest.state;
+    }
+
+    // Backward-compatible fallback for old hosts that do not include the
+    // simulation clock. This path still uses local arrival timestamps.
+    const renderAt = now - this.interpDelayMs;
     for (let i = 0; i < this.stateBuffer.length - 1; i++) {
       const s1 = this.stateBuffer[i];
       const s2 = this.stateBuffer[i + 1];
-      if (s1.timestamp <= now && now <= s2.timestamp) {
+      if (s1.timestamp <= renderAt && renderAt <= s2.timestamp) {
         const span = s2.timestamp - s1.timestamp || 1;
-        const t = Math.max(0, Math.min(1, (now - s1.timestamp) / span));
+        const t = Math.max(0, Math.min(1, (renderAt - s1.timestamp) / span));
         return this._lerpStates(s1.state, s2.state, t);
       }
     }
-    // `now` is before the oldest state — return oldest.
-    // `now` is after the newest state. Extrapolate only a short gap so a
-    // delayed render does not leave every remote player visibly behind.
-    const newest = this.stateBuffer[this.stateBuffer.length - 1];
-    const age = Math.max(0, Math.min(0.12, (now - newest.timestamp) / 1000));
+    const age = Math.max(0, Math.min(
+      this.maxExtrapolationMs / 1000,
+      (renderAt - newest.timestamp) / 1000
+    ));
     return age > 0 ? this._extrapolateState(newest.state, age) : newest.state;
   }
 
@@ -964,6 +1062,9 @@ export class ClientSync {
         x: p1p.x + (p2p.x - p1p.x) * t,
         z: p1p.z + (p2p.z - p1p.z) * t,
         y: (p1p.y || 0) + ((p2p.y || 0) - (p1p.y || 0)) * t,
+        // Turning across -PI/PI must take the short arc. Linear interpolation
+        // here was the subtle "spin then snap" seen on remote players.
+        yaw: this._lerpAngle(Number(p1p.yaw), Number(p2p.yaw), t),
       };
     });
     const b1 = s1.ball || {};
@@ -981,6 +1082,15 @@ export class ClientSync {
         vz: b2.vz || 0,
       },
     };
+  }
+
+  _lerpAngle(from, to, t) {
+    if (!Number.isFinite(from)) return Number.isFinite(to) ? to : 0;
+    if (!Number.isFinite(to)) return from;
+    let delta = to - from;
+    while (delta > Math.PI) delta -= Math.PI * 2;
+    while (delta < -Math.PI) delta += Math.PI * 2;
+    return from + delta * t;
   }
 }
 
@@ -1006,8 +1116,10 @@ let _prevGoalCooldown = 0;
  * @param {Game} game — engine instance (networkMode === "client")
  * @param {object} state — interpolated state from ClientSync.getInterpolatedState()
  * @param {number|null} localSlot — optional slot index to skip (pass null to apply to all)
+ * @param {object|null} latestState — newest authoritative state, used for
+ *   local HUD/possession so a render buffer never adds delay to the ball leash
  */
-export function applyStateToScene(game, state, localSlot = null, renderDt = 1 / 60) {
+export function applyStateToScene(game, state, localSlot = null, renderDt = 1 / 60, latestState = null) {
   if (!game || !state) return;
   const dt = Math.max(0, Math.min(Number(renderDt) || 1 / 60, 0.05));
   const players = state.players;
@@ -1126,8 +1238,12 @@ export function applyStateToScene(game, state, localSlot = null, renderDt = 1 / 
     if (Array.isArray(state.prSnapshot)) game.snapshot.prSnapshot = state.prSnapshot;
     // HUD del jugador local: stamina, super, cooldowns y posesión vienen del
     // host (su sim es la fuente de verdad).
-    if (typeof localSlot === "number" && state.players?.[localSlot]) {
-      const sp = state.players[localSlot];
+    if (typeof localSlot === "number" && (latestState?.players?.[localSlot] || state.players?.[localSlot])) {
+      // Position/ball rendering stays on the interpolated timeline, but the
+      // local player's possession and cooldown HUD should reflect the newest
+      // packet. In particular this lets _updateClientVisuals leash a held ball
+      // to the predicted player immediately instead of waiting 85ms more.
+      const sp = latestState?.players?.[localSlot] || state.players[localSlot];
       const localPlayer = game.players?.[localSlot];
       if (typeof sp.stamina === "number") {
         game.snapshot.stamina = sp.stamina;

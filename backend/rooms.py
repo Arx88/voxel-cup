@@ -87,6 +87,16 @@ class Room:
         self.created_at: float = time.time()
         self.last_activity: float = time.time()
         self.rules: Dict[str, Any] = dict(DEFAULT_RULES)
+        # World snapshots are lossy by design: only the newest one is useful.
+        # Keeping a per-recipient latest slot prevents a slow WebSocket from
+        # making the host's receive loop queue seconds of obsolete football
+        # state behind a TCP connection.
+        self._pending_states: Dict[WebSocket, str] = {}
+        self._state_flush_tasks: Dict[WebSocket, asyncio.Task] = {}
+        # Reliable messages and state flushes can originate in different room
+        # tasks. Serialize writes per socket so Starlette never sees concurrent
+        # websocket.send_text calls for the same client.
+        self._send_locks: Dict[WebSocket, asyncio.Lock] = {}
         self._init_slots()
 
     # ------------------------------------------------------------------ slots
@@ -161,6 +171,7 @@ class Room:
 
     async def leave(self, ws: WebSocket) -> None:
         """Revert the slot held by `ws` to AI; promote a new host if needed."""
+        self._forget_outbound(ws)
         idx = self._slot_index_for_ws(ws)
         if idx is None:
             return
@@ -242,9 +253,56 @@ class Room:
 
     # --------------------------------------------------------------- delivery
 
+    def _send_lock(self, ws: WebSocket) -> asyncio.Lock:
+        lock = self._send_locks.get(ws)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._send_locks[ws] = lock
+        return lock
+
+    def _forget_outbound(self, ws: WebSocket) -> None:
+        """Drop pending disposable state and stop its flusher on disconnect."""
+        self._pending_states.pop(ws, None)
+        task = self._state_flush_tasks.pop(ws, None)
+        current = asyncio.current_task()
+        if task is not None and task is not current and not task.done():
+            task.cancel()
+        self._send_locks.pop(ws, None)
+
+    def queue_state(self, ws: WebSocket, payload: str) -> None:
+        """Schedule only the newest state for a client, never a backlog."""
+        self._pending_states[ws] = payload
+        task = self._state_flush_tasks.get(ws)
+        if task is None or task.done():
+            self._state_flush_tasks[ws] = asyncio.create_task(
+                self._flush_latest_state(ws)
+            )
+
+    async def _flush_latest_state(self, ws: WebSocket) -> None:
+        """Write coalesced snapshots until the recipient has caught up."""
+        try:
+            while True:
+                payload = self._pending_states.pop(ws, None)
+                if payload is None:
+                    return
+                if not await self._safe_send(ws, payload):
+                    return
+        finally:
+            if self._state_flush_tasks.get(ws) is asyncio.current_task():
+                self._state_flush_tasks.pop(ws, None)
+
+    def broadcast_state_except(self, message: Dict[str, Any], exclude_ws: WebSocket) -> None:
+        """Coalesce host snapshots per recipient instead of serially awaiting them."""
+        payload = json.dumps(message)
+        for s in list(self.slots):
+            ws = s["ws"]
+            if ws is not None and ws is not exclude_ws:
+                self.queue_state(ws, payload)
+
     async def _safe_send(self, ws: WebSocket, payload: str) -> bool:
         try:
-            await ws.send_text(payload)
+            async with self._send_lock(ws):
+                await ws.send_text(payload)
             return True
         except Exception:
             # Client likely disconnected; revoke their slot.
@@ -547,7 +605,13 @@ async def room_ws(websocket: WebSocket, code: str) -> None:
                     continue
                 if mtype == "result":
                     room.state = "ended"
-                await room.broadcast_except(msg, exclude_ws=ws)
+                if mtype == "state":
+                    # State is a stream, not a reliable event. Do not await a
+                    # slow guest here: that would stop reading the host socket
+                    # and make every later input/state arrive stale.
+                    room.broadcast_state_except(msg, exclude_ws=ws)
+                else:
+                    await room.broadcast_except(msg, exclude_ws=ws)
 
             else:
                 # Unknown message type — silently ignore (forward-compat).
